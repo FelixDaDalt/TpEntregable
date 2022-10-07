@@ -1,21 +1,39 @@
-
 <script src='https://code.jquery.com/jquery-3.6.1.min.js'></script>
 <script src='https://pagination.js.org/dist/2.1.5/pagination.js'></script>
 
 <script type='text/javascript'>
 
-const url='https://59e8-181-230-219-190.ngrok.io/student'
+  const url = 'https://19ee-181-230-219-190.ngrok.io/student'
 
-window.onload = function() {
-      mostrarEstudiantes()
-      
+  window.onload = function () {
+    mostrarEstudiantes()
+  }
+
+  /* PROMESAS */
+  function listaEstudiantes() {
+    return new Promise(function (resolve, reject) {
+      var request = new XMLHttpRequest()
+      request.open('GET', url + '/getAll')
+      request.responseType = 'json'
+      request.onload = function () {
+        if (request.status == 200) {
+          resolve(request.response)
+        } else {
+          reject(Error(request.statusText))
         }
-/* PROMESAS */
-function listaEstudiantes() {
-            return new Promise(function(resolve, reject) {
+      }
+      request.onerror = function () {
+        reject(Error('Error: unexpected network error.'))
+      }
+      request.send()
+    })
+  }
+
+  function updateEstudiante(data, id) {
+    return new Promise(function(resolve, reject) {
                 var request = new XMLHttpRequest()
-                request.open('GET', url + '/getAll')
-                request.responseType = 'json'
+                request.open('POST', url + `/${id}/update`)
+                request.setRequestHeader('Content-Type', 'application/json')
                 request.onload = function() {
                     if (request.status == 200) {
                         resolve(request.response)
@@ -26,107 +44,179 @@ function listaEstudiantes() {
                 request.onerror = function() {
                     reject(Error('Error: unexpected network error.'))
                 }
-                request.send()
+                request.send(data)
             })
+  }
+
+  function newEstudiante() {
+    return new Promise(function (resolve, reject) {
+      var request = new XMLHttpRequest()
+      request.open('POST', url)
+      request.setRequestHeader('Content-Type', 'application/json')
+      var student = JSON.stringify({
+        'dni': document.getElementById('dni').value,
+        'lastName': document.getElementById('lastName').value,
+        'firstName': document.getElementById('firstName').value,
+        'email': document.getElementById('email').value,
+        'cohort': '0',
+        'status': 'activo',
+        'gender': 'masculino',
+        'address': 'abc123',
+        'phone': '000'
+      })
+      request.onload = function () {
+        if (request.status == 201) {
+          resolve(request.response)
+        } else {
+          reject(Error(request.statusText))
         }
+      }
+      request.onerror = function () {
+        reject(Error('Error: unexpected network error.'))
+      }
+      request.send(student)
+      
+    })
+    /* Pegarle a API*/
+  }
 
-function updateEstudiante(data){
-    alert(data) 
-  /* Pegarle a API*/
-}
+  function deleteEstudiante(id) {
+      return new Promise(function (resolve, reject) {
+      var request = new XMLHttpRequest()
+      request.open('POST', url + `/${id}/delete`)
+      request.setRequestHeader('Content-Type', 'application/json')
+      request.onload = function () {
+        if (request.status == 200) {
+          resolve(request.response)
+        } else {
+          reject(Error(request.statusText))
+        }
+      }
+      request.onerror = function () {
+        reject(Error('Error: unexpected network error.'))
+      }
+      request.send()
+    })
+  }
 
-function newEstudiante(data){
-    alert(data) 
-  /* Pegarle a API*/
-}
 
-function deleteEstudiante(data){
-      alert('borar: ID('+data+')')
-}
+  /* Funciones */
 
-
-/* Funciones */
-
-function mostrarEstudiantes(){
-        listaEstudiantes().then(response=>{
-        
-        $('#paginacion').pagination({ // you call the plugin
+  function mostrarEstudiantes() {
+    listaEstudiantes().then(response => {
+      $('#paginacion').pagination({ // you call the plugin
         dataSource: response, // pass all the data
         pageSize: 10, // put how many items per page you want
-        callback: function(data, pagination) {
-            var wrapper = $('tbody').empty();
-            $.each(data, function (i, valor) {
-              $('tbody').append(`<tr id=${valor.dni}><td>${valor.id}</td>`+
-                    `<td>${valor.dni}</td>`+
-                    `<td>${valor.lastName}</td>`+
-                    `<td>${valor.firstName}</td>`+
-                    `<td>${valor.email}</td>`+
-                    `<td><button type='button' class='btn btn-labeled btn-danger' onclick=deleteEstudiante(${JSON.stringify(valor.id)})>
-                    <span class='btn-label'><i class='glyphicon glyphicon-trash'></i></span>BORRAR</button>`+
-                      `<button type='button' class='btn btn-labeled btn-info' onclick='modificarEstudiante(${JSON.stringify(valor)})'>`+
-                        `<span class='btn-label'><i class='glyphicon glyphicon-refresh'></i></span>MODIFICAR</button></td></tr>`)
-                             
+        callback: function (data, pagination) {
+          var wrapper = $('tbody').empty();
+          $.each(data, function (i, valor) {
+            $('tbody').append(`<tr id=${valor.dni}><td>${valor.id}</td>` +
+              `<td>${valor.dni}</td>` +
+              `<td>${valor.lastName}</td>` +
+              `<td>${valor.firstName}</td>` +
+              `<td>${valor.email}</td>` +
+              `<td><button type='button' class='btn btn-labeled btn-danger' onclick=borrarEstudiante(${valor.id})>
+               <span class='btn-label'><i class='glyphicon glyphicon-trash'></i></span>BORRAR</button>`+
+              `<button type='button' class='btn btn-labeled btn-info' onclick='modificarEstudiante(${JSON.stringify(valor)})'>` +
+              `<span class='btn-label'><i class='glyphicon glyphicon-refresh'></i></span>MODIFICAR</button></td></tr>`)
+          });
+        }
       });
-    }
-  });
-    });
-  } 
+    }).catch(error =>{
+        console.log("Error:" + error)
+    })
+  }
 
-function modificarEstudiante(estudiante){
-           var tr = document.getElementById(estudiante.dni)
-           tr.innerHTML=''
-           $(tr).append(`<td>${estudiante.id}</td>`+
-              `<td><input type='text' class='form-control' id='dni' value='${estudiante.dni}'></td>`+
-              `<td><input type='text' class='form-control' id='lastName' value='${estudiante.lastName}'></td>`+
-              `<td><input type='text' class='form-control' id='firstName' value='${estudiante.firstName}'></td>`+
-              `<td><input type='text' class='form-control' id='email' value='${estudiante.email}'></td>`+
-                `<td><button type='button' class='btn btn-labeled btn-success' onclick='updateEstudiante(createJSON())'>`+
-                `<span class='btn-label'><i class='glyphicon glyphicon-ok' ></i></span>Aceptar</button>`+
-                `<button type='button' class='btn btn-labeled btn-danger' onclick=mostrarEstudiantes()>`+
-                `<span class='btn-label'><i class='glyphicon glyphicon-remove'></i></span>Cancelar</button></td>`
-            )
-          
-}
+  function modificarEstudiante(estudiante) {
+    var tr = document.getElementById(estudiante.dni)
+    tr.innerHTML = ''
+    $(tr).append(`<td>${estudiante.id}</td>` +
+      `<td><input type='text' class='form-control' id='dni' value='${estudiante.dni}'></td>` +
+      `<td><input type='text' class='form-control' id='lastName' value='${estudiante.lastName}'></td>` +
+      `<td><input type='text' class='form-control' id='firstName' value='${estudiante.firstName}'></td>` +
+      `<td><input type='text' class='form-control' id='email' value='${estudiante.email}'></td>` +
+      `<td><button type='button' class='btn btn-labeled btn-success' onclick='actualizarEstudiante(${estudiante.id})''>` +
+      `<span class='btn-label'><i class='glyphicon glyphicon-ok' ></i></span>Aceptar</button>` +
+      `<button type='button' class='btn btn-labeled btn-danger' onclick=cancelarEdicion(${JSON.stringify(estudiante)})>` +
+      `<span class='btn-label'><i class='glyphicon glyphicon-remove'></i></span>Cancelar</button></td>`
+    )
+  }
 
-function agregarEstudiante()
-{
-  $('tbody').prepend(`<td></td>`+
-              `<td><input type='text' class='form-control' id='dni' value='DNI'></td>`+
-              `<td><input type='text' class='form-control' id='lastName' value='APELLIDO'></td>`+
-              `<td><input type='text' class='form-control' id='firstName' value='NOMBRE'></td>`+
-              `<td><input type='text' class='form-control' id='email' value='EMAIL'></td>`+
-                `<td><button type='button' class='btn btn-labeled btn-success' onclick='newEstudiante(createJSON())'>`+
-                `<span class='btn-label'><i class='glyphicon glyphicon-ok' ></i></span>Aceptar</button>`+
-                `<button type='button' class='btn btn-labeled btn-danger' onclick=mostrarEstudiantes()>`+
-                `<span class='btn-label'><i class='glyphicon glyphicon-remove'></i></span>Cancelar</button></td>`
-            )
-}
+  function cancelarEdicion(estudiante){
+    var tr = document.getElementById(estudiante.dni)
+    tr.innerHTML = ''
+    $(tr).append(`<td>${estudiante.id}</td>` +
+    `<td>${estudiante.dni}</td>` +
+      `<td>${estudiante.lastName}</td>` +
+      `<td>${estudiante.firstName}</td>` +
+      `<td>${estudiante.email}</td>` +
+      `<td><button type='button' class='btn btn-labeled btn-danger' onclick=borrarEstudiante(${estudiante.id})>
+               <span class='btn-label'><i class='glyphicon glyphicon-trash'></i></span>BORRAR</button>`+
+              `<button type='button' class='btn btn-labeled btn-info' onclick='modificarEstudiante(${JSON.stringify(estudiante)})'>` +
+              `<span class='btn-label'><i class='glyphicon glyphicon-refresh'></i></span>MODIFICAR</button></td></tr>`)
+  }
 
-function createJSON(){
-  var data = JSON.stringify({
-                  "dni": document.getElementById("dni").value,
-                  "lastName": document.getElementById("lastName").value,
-                  "firstName": document.getElementById("firstName").value,
-                  "email": document.getElementById("email").value
-                })
-  return data
-}
+  function agregarEstudiante() {
+    $('tbody').prepend(`<td></td>` +
+      `<td><input type='text' class='form-control' id='dni' value='DNI'></td>` +
+      `<td><input type='text' class='form-control' id='lastName' value='APELLIDO'></td>` +
+      `<td><input type='text' class='form-control' id='firstName' value='NOMBRE'></td>` +
+      `<td><input type='text' class='form-control' id='email' value='EMAIL'></td>` +
+      `<td><button type='button' class='btn btn-labeled btn-success' onclick=nuevoEstudiante()>` +
+      `<span class='btn-label'><i class='glyphicon glyphicon-ok' ></i></span>Aceptar</button>` +
+      `<button type='button' class='btn btn-labeled btn-danger' onclick=mostrarEstudiantes()>` +
+      `<span class='btn-label'><i class='glyphicon glyphicon-remove'></i></span>Cancelar</button></td>`
+    )
+  }
 
+  function actualizarEstudiante(id) {
+    var data = JSON.stringify({
+      "id":id,
+      "dni": document.getElementById("dni").value,
+      "lastName": document.getElementById("lastName").value,
+      "firstName": document.getElementById("firstName").value,
+      "email": document.getElementById("email").value,
+      'cohort': '0',
+                    'status': 'activo',
+                    'gender': 'masculino',
+                    'address': 'abc123',
+                    'phone': '000'
+    })
+    updateEstudiante(data,id).then(()=>{
+        mostrarEstudiantes();
+    }).catch(error =>{
+        console.log("Error:" + error)
+    })
+  }
 
+ function borrarEstudiante(id){
+      deleteEstudiante(id).then(() =>{
+        mostrarEstudiantes()
+      }).catch(error =>{
+        console.log("Error:" + error)
+    })
+ }
 
+function nuevoEstudiante(){
+    newEstudiante().then(()=>{
+        mostrarEstudiantes();
+    }).catch(error =>{
+        console.log("Error:" + error)
+    })
+  }
 
 </script>
 
-<link href='https://getbootstrap.com/docs/4.0/dist/css/bootstrap.min.css' rel='stylesheet' integrity='sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm' crossorigin='anonymous'>
+<link href='https://getbootstrap.com/docs/4.0/dist/css/bootstrap.min.css' rel='stylesheet'
+  integrity='sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm' crossorigin='anonymous'>
 <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
 <script src="https://pagination.js.org/dist/2.1.4/pagination.min.js"></script>
-<link rel="stylesheet" href="https://pagination.js.org/dist/2.1.4/pagination.css"/>
+<link rel="stylesheet" href="https://pagination.js.org/dist/2.1.4/pagination.css" />
 
-<div  style = "float: left">PAGINAS:&nbsp;&nbsp;&nbsp;</div><div id="paginacion"  style = "float: left"></div>
-<div class="col-md-12" ><button type="button" class="btn btn-labeled btn-success" style = "float: rigth" onclick=agregarEstudiante()>
-      <span class="btn-label"><i class="bi bi-plus-circle"></i></span>Agregar</button>
+<div id="paginacion"></div>
 
-<table id='dataTable' class='table'>
+
+  <table id='dataTable' class='table'>
     <thead class='thead-dark'>
       <tr>
         <th scope='col'>#</th>
@@ -135,10 +225,13 @@ function createJSON(){
         <th scope='col'>NOMBRE</th>
         <th scope='col'>EMAIL</th>
         <th scope='col'>ACCIONES</th>
+        <th scope='col'><div class="col-md-12"><button type="button" class="btn btn-labeled btn-success" style="float: rigth"
+          onclick=agregarEstudiante()>
+          <span class="btn-label"><i class="bi bi-plus-circle"></i></span>Agregar</button></th>
       </tr>
     </thead>
     <tbody>
     </tbody>
   </table>
 
-    </div>
+</div>
